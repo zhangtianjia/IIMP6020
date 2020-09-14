@@ -6,18 +6,18 @@ In this tutorial, you will learn how to estimate the pose of Tello with mission 
 - estimation:
 
 ## Marker Retrievaling and Tracking
-We need to detect markers in the captured image to determine the index of the mission pad which is called retrivaling. Usually for a video, we should  
-There are several circular dots in each mision pad with different distribution. The local arrangement of neighbor dots is unique for each dot so the arrangements can be used as descriptors of dots. W
+We need to detect markers in the captured image to determine the index of the mission pad which is called retrivaling. Usually for a video, it cost two much to retrieval markers in every frame. If a marker is retrievaled in the previous frame, then we can just track the same marker in the present frame. If the tracking is failed, then the retrivaling is executed.   
+ 
 
 ### Keypoint Matching By Locally Likely Arrangement Hashing
-For each extracted point, its corresponding point is retrieved from the database. Because a dot does not have interior features to descriminate itself from others, we need to use geometric infromation from other potints to calculate the feature.
+For each extracted point, its corresponding point is retrieved from the database. Because a dot does not have interior features to descriminate itself from others, we need to use geometric infromation from other potints to calculate the feature.There are several circular dots in each mision pad with different distribution. The local arrangement of neighbor dots is unique for each dot so the arrangements can be used as descriptors of dots. 
 
 #### Keypoint Extraction
 For a captured image, keypoint extraction is first performed because the marker retrieval and tracking are based on keypoint matching. In order to utilize the center of each dot as a keypoint, we extract dot regions in the image.
 Usually circular dots are black while their background is white. In this case, the dots can simply be extracted by thresholding brightness. Because the color of dots is not limited to black, other color extraction such as thresholding hue or saturation in HSV space is also applicable. After the binarization, connected regions are extracted and each center is computed as a keypoint.
 
 #### Geometric Invariants
-We use geometric invariants to describe the feature of a point. Geometric invariants are the values which keep unchanged under geometric transformation. There are mainly two invariant:
+We use geometric invariants to describe the feature of a point. Geometric invariants are the values which keep unchanged under geometric transformation. There are mainly two invariants:
 - **Cross-Ritio** is known as an invariant of perspective transformaiton calculated from five coplanar points ABCDE as follows:
 $$
 \frac{P(A,B,C)P(A,D,E)}{P(A,B,D)P(A,C,E)} \tag{1}
@@ -138,6 +138,7 @@ $$
 \bold{Ah}=\begin{pmatrix}
 \vdots \\ \bold{A}_i \\ \vdots  
 \end{pmatrix}\bold{h}=0
+\tag{10}
 $$
 where $\bold{A}_i$ is given by:
 $$
@@ -152,18 +153,18 @@ X_i^w&Y_i^w&Z_i^w&1&0&0&0&0\\0&0&0&0&X_i^w&Y_i^w&Z_i^w&1
 \\&&&-y_iX_i^w&-y_iY_i^w&-y_iZ_i^w&-y_i
 \end{matrix}\right)
 \end{aligned}
-\tag{10}
+\tag{11}
 $$
 and 
 $$
-\bold{h}=\left(\bold{r_1},t_x,\bold{r}_2,t_y,\bold{r}_3,t_z \right)^T \tag{11}
+\bold{h}=\left(\bold{r_1},t_x,\bold{r}_2,t_y,\bold{r}_3,t_z \right)^T \tag{12}
 $$
 is a vector representation of $\bold{T}_w^c$. The solution of this homoge-neous system is the eigenvector of $\bold{A}$ corresponding to its minimal eigenvalue (computed through a Singular Value Decomposition of $\bold{A}$). An orthonormalization of the obtained rotation matrix is then necessary.
 ### Random Sample Consensus (RANSAC) to increase robustness
 
 
 ## Assignment
-1. Summarize the process of retrivaling and tracking using block graph.
+1. Summarize the process of retrivaling and tracking using a block diagram.
 2. Given a image of a mission pad, compute the cross-ratio and affine invariant of a feature point.
 3. Given a group of 2d-3d point correspondences, compute the pose estimation.
 

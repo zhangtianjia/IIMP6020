@@ -2,11 +2,11 @@
 <center>By IIMP6020 teaching team</center>
 
 In this tutorial, you will learn how to estimate the pose of Tello with mission pads. The main procedure includes two parts: 
-- retrievaling and tracking:
-- estimation:
+- retrievaling and tracking: Retrievaling is to extract feature points of an image on which mission pads are taken and find correspondent reference image in the databse. By retrievaling, we can obtain the index of each mission pad.Traking is used to reduce the computation between two images.
+- estimation: Each mission pad has different sparial distribution of circles. By appropriate mathmatical calcultion we can obtion the pose of the drones with respect to these circles.
 
 ## Marker Retrievaling and Tracking
-We need to detect markers in the captured image to determine the index of the mission pad which is called retrivaling. Usually for a video, it cost two much to retrieval markers in every frame. If a marker is retrievaled in the previous frame, then we can just track the same marker in the present frame. If the tracking is failed, then the retrivaling is executed.   
+During the course , we use Locally Likely Arrangement Hashing(LLAH) method for retrievaling. Usually for a video, it cost too much to retrieval markers in every frame. If a marker is retrievaled in the previous frame, then we can just track the same marker in the present frame. If the tracking is failed, then the retrivaling is executed.   
  
 
 ### Keypoint Matching By Locally Likely Arrangement Hashing
@@ -15,6 +15,7 @@ For each extracted point, its corresponding point is retrieved from the database
 #### Keypoint Extraction
 For a captured image, keypoint extraction is first performed because the marker retrieval and tracking are based on keypoint matching. In order to utilize the center of each dot as a keypoint, we extract dot regions in the image.
 Usually circular dots are black while their background is white. In this case, the dots can simply be extracted by thresholding brightness. Because the color of dots is not limited to black, other color extraction such as thresholding hue or saturation in HSV space is also applicable. After the binarization, connected regions are extracted and each center is computed as a keypoint.
+
 
 #### Geometric Invariants
 We use geometric invariants to describe the feature of a point. Geometric invariants are the values which keep unchanged under geometric transformation. There are mainly two invariants:
@@ -31,11 +32,14 @@ $$
 
 #### Calculation of Features
 
-The simplest definition of the feature of a feature point $p$ is to use $f$ nearest feature points from $p$ . In general, we assume that common $m$ points exist in $n$ nearest neighbors under some extent of perspective distortion. Common $m$ points are obtained by examining all possible combinations $P_{m(0)}$, $P_{m(1)}$,...,$P_{m(nC_{m-1})}$ of $m$ points from $n$ nearist points ($nC_m=\frac{n!}{m!(n-m)!}$). As long as the assumption holds, at least one combination of $m$ points is common. Thus a stable feature can be obtained.
+The simplest definition of the feature of a feature point $p$ is to use $f$ nearest feature points from $p$ . In general, we assume that common $m$ points exist in $n$ nearest neighbors under some extent of perspective distortion. Common $m$ points are obtained by examining all possible combinations $P_{m(0)}$, $P_{m(1)}$,...,$P_{m(nC_{m-1})}$ of $m$ points from $n$ nearist points ($nC_m=\frac{n!}{m!(n-m)!}$). 
 
 The simplest way of calculating the feature from $m$ points is to set $m=f$ and calculate the cross-ratio or the affine invariant from $f$ points. Howerver, such a simple feature lacks the discrimination power because it is often the case that similar arrangements of $f$ points are obtained from different feature points. In order to increase the discrimination power, we utilize feature points of a broader area. It is performed by increasing the number $m(>f)$. As $m$ increases, the probability that different feature points have similar arrangement of $m$ points decreases. 
-#### Registration
 
+![图片](/Pictures/feature%20calculation.png)
+
+#### Registration
+In the registration step, every feature point in the image is registered into the document image database using its feature. The hash table is applied to inprove computation efficiency.
 The index $H_{index}$ of the hash table is calculated by the following hash function:
 $$
 H_{index} = 
@@ -85,10 +89,16 @@ In order to remove items with different sequences of invariants, the following c
 After markers are retrieved, they are tracked until failing the tracking. When we use geometric descriptors for keypoint matching, the tracking has an important aspect for handling wide range of view-points . Thanks to the tracking, augmentation of markers is possible even when a camera is tilted. Instead of updating the descriptor database, we keep the descriptors of only previous frame because the updating procedure may produce an adverse affect such that the discriminative ability of the descriptors is degraded as the number of updated descriptors increases. In $t-1_{th}$ frame, the keypoints in the retrieved or tracked refer-ences are projected onto the captured image by using each homography to find more correspondences between keypoints in the image and keypoints projected from the references. For t th frame, key-point matching by LLAH is performed with t-1 th frame. Because the keypoints in $t-1_{th}$ frame have already had the correspondences with those in the reference, the keypoints in $t_{th}$ frame can also have the correspondences with those in the reference. For the correspon-dences of each marker, the homography between $t_{th}$ frame and the references in the database is computed as in the retrieval.
 In every frame, the tracking is performed at first. In the retrieval, tracked markers are removed from the candidates of retrieved mark-ers.
 
-## Estimation by PnP
+## Pose Estimation by PnP
 Now we assume that we have known the 2D-3D correspondences. A simple definition of pose estimaiton could be: "given a set of correspondences between 3D features and their projections in the images plane, pose estimation consists in computing the position and orientation of the camera".
 
 ### Camera Model
+![图片](/Pictures/Rigid%20transformation.png)
+<center>Fig Rigid transformation betwwen the world frame and the camera frame </center>
+
+
+
+\
 Let us denote $\mathcal{F_c}$ the camera frame and $\bold{T}_w^c$ the transformation that fully defines the position of $\mathcal{F}_w$ with respect to $\mathcal{F}_c$. $\bold{T}_w^c$ is a homogeneous matrix defined such that:
 $$
 \bold{T}_w^c = \begin{pmatrix}
@@ -120,7 +130,7 @@ $$
 
 If we have $N$ points $\bold{X}^w_i, i=1,...,N$ whose coordinates expressed in $\mathcal{F}_w$ are given by $\bold{X}_i^w=(X^w_i, Y^w_i, Z^w_i,1)^T$, the projection $\bold{x}_i=(x_i, y_i, 1)^T$ of these points in the image plane is given by:
 $$\bold{x}_i = \bold{\Pi}\bold{T}_c^w\bold{X}_i\tag{8}$$
-Several(equal or greater than 3) paris of 2D-3D point correspendences $\bold{x}_i$ and $\bold{X}^w_i$ can provide a set of equations to solve $\bold{T}^c_w$. This is an inverse problem that is known as the Perspective from N points problem or PnP(Perspective-n-point).
+Several(equal or greater than 3) paris of 2D-3D point correspendences $\bold{x}_i$ and $\bold{X}^w_i$ can provide a set of equations to solve $\bold{T}^c_w$. This is an inverse problem that is known as the **Perspective from N points problem** or **PnP**(Perspective-n-point).
 
 ### Perspective-n-point
 PnP considered an over-constrained and generic solution to the pose estimation problem from 2D-3D point correspondences.
@@ -166,7 +176,8 @@ is a vector representation of $\bold{T}_w^c$. The solution of this homoge-neous 
 ## Assignment
 1. Summarize the process of retrivaling and tracking using a block diagram.
 2. Given a image of a mission pad, compute the cross-ratio and affine invariant of a feature point.
-3. Given a group of 2d-3d point correspondences, compute the pose estimation.
+3. Show how to estimate $\bold{h}$ to find a solution to minimize the homogenous linear least squares system (10). 
+4. Given a group of 2d-3d point correspondences, compute the pose estimation.
 
 
 ## Reference
